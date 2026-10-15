@@ -53,7 +53,7 @@ def run_request(options: AssistantOptions, *, project_root: Path, planner=reques
     run_dir = run_root/(datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%SZ')+'_'+uuid.uuid4().hex[:12])
     run_dir.mkdir()
     started = time.monotonic()
-    status = {'stage':'initialization', 'state':'running', 'requested_model':options.model or os.environ.get('PINN_LLM_MODEL') or DEFAULT_MODEL}
+    status = {'stage':'initialization', 'state':'running', 'backend':options.backend, 'requested_model':options.model or os.environ.get('PINN_LLM_MODEL') or DEFAULT_MODEL}
 
     def finish(state: str, exit_code: int, error_code: str | None = None):
         status.update(state=state, error_code=error_code, elapsed_s=round(time.monotonic()-started, 3))
@@ -79,7 +79,7 @@ def run_request(options: AssistantOptions, *, project_root: Path, planner=reques
                 shutil.copy2(previous/name, run_dir/name)
             candidate = run_dir/'candidate'
             previous_status = json.loads((previous/'status.json').read_text(encoding='utf-8'))
-            status.update({k:previous_status.get(k) for k in ('requested_model','returned_model','response_id')})
+            status.update({k:previous_status.get(k) for k in ('backend','requested_model','returned_model','response_id')})
             status['resumed_from'] = previous.name
             (run_dir/'request.txt').write_text((previous/'request.txt').read_text(encoding='utf-8'), encoding='utf-8')
         else:
@@ -90,7 +90,7 @@ def run_request(options: AssistantOptions, *, project_root: Path, planner=reques
             config, _ = apply_config_changes(config, [])
             _resolve_data_path(config, root)
             sources = collect_source_context(root) if options.code else {}
-            result = planner(options.request, config, model=status['requested_model'], sources=sources)
+            result = planner(options.request, config, model=status['requested_model'], sources=sources, backend=options.backend)
             plan = result.plan
             validate_plan(plan)
             status.update(returned_model=result.returned_model, response_id=result.response_id)

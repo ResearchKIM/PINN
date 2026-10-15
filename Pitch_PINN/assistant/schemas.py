@@ -60,6 +60,7 @@ class AssistantOptions:
     code: bool = False
     run_candidate: bool = False
     resume_dir: Path | None = None
+    backend: Literal['codex', 'api'] = 'codex'
 
 
 @dataclass(frozen=True)

@@ -39,3 +39,8 @@ main 및 feature/natural-laguage-pinn 두 브랜치 업로드와 원격 해시 �
 독립 리뷰 Important2건(상대 데이터 경로/후보 루트 파일 검증)을 회귀 테스트로 재현·수정했습니다.
 실제 OPENAI_API_KEY는 미설정이므로 실제 클라우드 호출과 계정 모델 접근성은 아직 미검증입니다.
 사용 안내: Pitch_PINN/docs/natural_language_assistant.md. 최신 인계: checkpoints/20261015-191148-codex-assistant-implementation.md.
+
+2026-10-15 사용자 요청으로 기본 LLM 연결을 Codex CLI의 ChatGPT 로그인 방식으로 변경했습니다. 이제 API 키는 기본 실행에 필요하지 않습니다. 기존 API 방식은 --backend api로만 선택합니다.
+실제 Codex 로그인 호출로 자연어→resolved_config.yaml 생성 성공: epochs20/stride10/physics_pitch6. 실행 ID20261015T110348Z_ab196a2baea8, 원본 YAML 보존. CLI JSON은 실제 모델 ID를 제공하지 않아 unreported_by_codex_cli로 기록했습니다.
+최종 테스트123passed/1skip, 독립 리뷰 Important/Critical 없음. 이전 '실제 클라우드 미검증'은 초기 API 버전에 대한 기록이며, 로그인 방식의 실제 설정 생성은 검증됐습니다.
+최신 인계: checkpoints/20261015-200746-codex-login-backend.md.

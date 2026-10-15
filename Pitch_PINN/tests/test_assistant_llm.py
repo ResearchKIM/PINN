@@ -3,7 +3,7 @@ from types import SimpleNamespace as NS
 
 import pytest
 
-from Pitch_PINN.assistant.llm import PlannerError, collect_source_context, request_plan
+from Pitch_PINN.assistant.llm import PlannerError, collect_source_context, request_api_plan as request_plan
 from Pitch_PINN.assistant.schemas import AssistantPlan
 
 

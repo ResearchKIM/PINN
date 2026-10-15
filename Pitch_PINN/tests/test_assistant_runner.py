@@ -116,7 +116,7 @@ def test_resume_without_api_and_with_preserved_source(project,monkeypatch):
 
 def test_missing_api_key_fails_without_training(project,monkeypatch):
     monkeypatch.delenv('OPENAI_API_KEY',raising=False)
-    result=runner.run_request(options(project,train=True),project_root=project)
+    result=runner.run_request(options(project,train=True,backend='api'),project_root=project)
     status=json.loads((result.run_dir/'status.json').read_text())
     assert status['error_code']=='missing_key'
 
