@@ -1,7 +1,7 @@
 # 클라우드 LLM 기반 자연어 PINN 학습 제어 설계
 
 날짜: 2026-10-15 KST
-상태: 사용자 검토용. 제품 구현 전.
+상태: 2026-10-15 사용자가 설계 승인. 구현 계획 검토 전이며 제품 구현 전.
 
 ## 1. 목적과 성공 기준
 
@@ -11,7 +11,7 @@
 
 ## 2. 확인된 현재 환경
 
-- 프로젝트: E:/PINN. 현재 Git 저장소가 아니므로 Git 기반 되돌리기에 의존하지 않는다.
+- 프로젝트: E:/PINN. 설계 초안 당시에는 Git 저장소가 아니었으나 이후 GitHub origin 연결을 완료했다. 현재 개발 브랜치는 feature/natural-laguage-pinn이다. 후보 복사본 보존 방식은 유지한다.
 - 기존 진입점: Pitch_PINN.train_inverse_pinn.run_training_from_config(config, epochs=None, output_dir=None).
 - 설정: Pitch_PINN/config/tesla_ev6.yaml. 실제 기본 차량은 EV6.
 - 기존 파라미터: k_front_npm, k_rear_npm, c_front_nspm, c_rear_nspm.
