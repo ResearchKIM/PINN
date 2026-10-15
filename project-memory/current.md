@@ -23,3 +23,7 @@ Codex 시작 훅의 신뢰 상태와 실제 자동 주입은 이번 작업에서
 사용자가 로컬 Git을 main 브랜치로 초기화했습니다. 루트 .gitignore를 추가하고 코드/문서/공유 기억의 첫 스테이징을 준비했습니다.
 원격 저장소는 없고 user.name/user.email이 미설정되어 첫 커밋은 아직 하지 않았습니다.
 Git 작업 인계: checkpoints/20261015-175027-codex-git-baseline.md.
+
+Git 현황 갱신: 첫 커밋 5b1b9b8 생성 후 사용자가 지정한 https://github.com/ResearchKIM/PINN.git 을 origin으로 연결했습니다.
+main 및 feature/natural-laguage-pinn 두 브랜치 업로드와 원격 해시 일치를 확인했습니다. 인증은 Git Credential Manager 브라우저 로그인을 사용했습니다.
+최신 GitHub 인계: checkpoints/20261015-184152-codex-github-connect.md. 저장소 공개/비공개 여부는 미확인입니다.
