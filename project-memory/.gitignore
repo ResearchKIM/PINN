@@ -1,0 +1,3 @@
+# shared-project-memory: local-only files
+archive/
+.setup-complete.json

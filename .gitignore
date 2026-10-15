@@ -1,0 +1,29 @@
+# Credentials and machine-local settings
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+.claude/settings.local.json
+
+# Python environments and caches
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Raw data, trained weights and generated runs
+*.mat
+*.pt
+*.pth
+*.ckpt
+/Pitch_PINN/outputs*/
+/Pitch_PINN/assistant_runs/
+/tmp/
+
+# Keep the CarMaker project and reference papers local for this baseline
+/PINN_file/
+/참고논문/

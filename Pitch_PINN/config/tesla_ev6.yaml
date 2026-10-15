@@ -1,0 +1,62 @@
+project:
+  name: ev6_full_car_pitch
+  seed: 42
+  output_dir: E:/PINN/Pitch_PINN/outputs
+data:
+  mat_path: E:/PINN/PINN_file/src_cm4sl/Data/3.ACC/0.1g_EV6.mat
+  scenario_name: acc_0p1g
+  vehicle: EV6
+  keys:
+    time: Sim_Time
+    ax: Ax
+    pitch_rate: PITCH_RATE
+    wheel_velocity: {fl: VelZ_FL_WC, fr: VelZ_FR_WC, rl: VelZ_RL_WC, rr: VelZ_RR_WC}
+    wheel_acceleration: {fl: AccZ_FL_WC, fr: AccZ_FR_WC, rl: AccZ_RL_WC, rr: AccZ_RR_WC}
+    damper_length: {fl: DampLength_FL, fr: DampLength_FR, rl: DampLength_RL, rr: DampLength_RR}
+    damper_velocity: {fl: DampVel_FL, fr: DampVel_FR, rl: DampVel_RL, rr: DampVel_RR}
+  sparse_stride: 1
+  remove_bias_samples: 0
+  baseline_samples: 100
+  drop_last_samples: 1
+model:
+  hidden_width: 64
+  hidden_layers: 4
+  output_scales: {heave_m: 0.05, roll_rad: 0.01, pitch_rad: 0.01}
+  parameters:
+    k_front_npm: {initial: 35000.0, min: 5000.0, max: 120000.0}
+    k_rear_npm: {initial: 45000.0, min: 5000.0, max: 120000.0}
+    c_front_nspm: {initial: 4608.8, min: 100.0, max: 20000.0}
+    c_rear_nspm: {initial: 4626.5, min: 100.0, max: 20000.0}
+vehicle:
+  sprung_mass_kg: 1601.0
+  roll_inertia_kgm2: 642.77
+  pitch_inertia_kgm2: 2310.8
+  cg_to_front_m: 1.450
+  cg_to_rear_m: 1.450
+  front_track_m: 1.6240
+  rear_track_m: 1.6240
+  cg_height_m: 0.625
+auxiliary: {front_junction_ratio: 0.614, rear_junction_ratio: 0.797, damper_polarity: 1.0}
+skyhook: {enabled: false, gain_nms_per_rad: 0.0}
+training:
+  epochs: 5000
+  learning_rate: 0.001
+  collocation_points: 1024
+  log_every: 100
+  use_lbfgs: false
+  lbfgs_max_iter: 200
+  weights:
+    pitch_data: 10000.0
+    physics_heave: 1.0
+    physics_roll: 1.0
+    physics_pitch: 2.0
+    damper_length: 2.0
+    damper_velocity: 2.0
+    initial: 10.0
+    regularization: 0.0001
+carmaker:
+  dry_run: true
+  project_root: E:/PINN/PINN_file
+  command: null
+  parameter_target: null
+  result_mat_path: null
