@@ -29,7 +29,7 @@
 
 ## 4. 사용자 흐름
 
-예정 CLI 형식이며 아직 실행 가능한 명령이 아니다.
+구현된 CLI 형식이다. 이후 사용자 요청에 따라 설정 변경은 지정한 원본 YAML에 백업 후 반영하도록 변경했다.
 
 ```powershell
 python -m Pitch_PINN.assistant --request "관측점은 10개마다 하나씩 쓰고 20 epoch 학습해줘"
@@ -37,7 +37,7 @@ python -m Pitch_PINN.assistant --request "관측점은 10개마다 하나씩 쓰
 python -m Pitch_PINN.assistant --request "앞뒤 강성은 고정하고 감쇠만 학습하도록 코드를 수정해줘" --code
 ```
 
-- 기본 실행은 계획과 변경된 설정/코드 후보 및 차이를 저장한다.
+- 기본 설정 변경 실행은 계획과 차이를 저장하고 지정한 YAML을 백업 후 갱신한다. --preview는 원본 변경 없이 미리보기만 저장한다.
 - --train은 검증된 설정 변경을 기존 학습 함수에 전달한다.
 - --code는 허용된 PINN 파일의 코드 변경안을 실행별 복사본에 만든다. 원본에 자동 덮어쓰지 않는다.
 - 코드 후보 실행은 별도 --run-candidate 플래그가 있어야 한다. 후보 파일을 검토하고 로컬 Python 코드 실행을 요청하는 의미이며, 복사본은 OS 보안 샌드박스가 아니다.
@@ -79,8 +79,8 @@ python -m Pitch_PINN.assistant --request "앞뒤 강성은 고정하고 감쇠�
 - OpenAI SDK Responses 구조화 출력으로 계획을 받는다. 모델 ID와 응답 ID를 기록한다.
 - OPENAI_API_KEY는 환경변수로만 받는다. 누락/인증 오류/접근 불가/시간 초과/거절/불완전 응답을 구분하고 실행 실패로 반환한다. 비밀 값이 포함될 수 있는 원문 오류는 그대로 저장하지 않는다.
 - API 입력은 자연어 요청, 설정, 코드 변경 모드일 때 허용된 소스이다. 문서/코드 안의 문자열을 사용자 지시로 취급하지 않는다.
-- 설정 모드는 기준 설정의 복사본에 변경을 적용해 기존 학습 함수를 호출한다.
-- 실행별 출력은 Pitch_PINN/assistant_runs/<unique-id>/에 저장한다. 기존 outputs와 원본 설정은 덮어쓰지 않는다.
+- 설정 모드는 검증된 변경을 지정 YAML에 반영한다. --train은 실행별 설정 복사본으로 기존 학습 함수를 호출한다.
+- 실행별 출력은 Pitch_PINN/assistant_runs/<unique-id>/에 저장한다. 원본 YAML은 source_config_before.yaml로 백업하고 기존 outputs와 Python 소스는 보존한다.
 - 산출물: request.txt, plan.json, config_diff.json, resolved_config.yaml, status.json. 코드 모드는 source_hashes.json, changes.diff, candidate/를 추가한다. 실행 시 테스트/학습 로그와 기존 학습 산출물을 추가한다.
 - 실패 시에도 실패 단계와 조건을 status에 남긴다. 성공하지 않은 작업을 완료로 보고하지 않는다.
 - CarMaker 실제 실행, 새 순방향 full-car 모델, 목표 응답 최적화, 웹 UI, LLM 추가 학습은 이 첫 버전의 구현 범위에 포함하지 않는다.
@@ -92,7 +92,7 @@ python -m Pitch_PINN.assistant --request "앞뒤 강성은 고정하고 감쇠�
 - API 키 누락·인증/모델 오류·불완전 응답에서 학습 및 후보 실행이 시작되지 않는지 확인.
 - 후보 구문 오류/테스트 실패/시간 초과에서 학습이 시작되지 않는지 확인.
 - API 키가 후보 실행 환경 및 저장 산출물에 포함되지 않는지 확인.
-- 원본 설정·소스·기존 산출물 보존 및 실행별 결과 분리 확인.
+- 지정 YAML 갱신·정확한 원본 백업·미리보기 보존·계획 중 변경 충돌 감지와 Python 소스·기존 산출물 보존 및 실행별 결과 분리 확인.
 - 기존 테스트 전체 실행 및 실제 EV6 데이터의 작은 epoch 설정 변경 smoke 학습.
 - 키 준비 후 한국어 요청 한 건의 실제 API 호출과 반환 모델 ID·변경 결과 확인. 키가 없으면 API 실검증 미완료로 명시.
 

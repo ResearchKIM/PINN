@@ -2,6 +2,11 @@ from __future__ import annotations
 
 from copy import deepcopy
 import math
+import os
+from pathlib import Path
+import tempfile
+
+import yaml
 
 from .schemas import ConfigChange
 
@@ -62,3 +67,48 @@ def apply_config_changes(base: dict, changes: list[ConfigChange]) -> tuple[dict,
         if not 0 < item['min'] < item['max'] or not item['min'] <= item['initial'] <= item['max']:
             raise ValueError('invalid suspension parameter bounds or initial value')
     return config, diff
+
+
+class ConfigurationConflict(ValueError):
+    """The selected YAML changed after it was sent for planning."""
+
+
+def persist_config_changes(path: Path, original: bytes, changes: list[ConfigChange], backup: Path) -> None:
+    """Replace only validated YAML scalar values, preserving surrounding text."""
+    text = original.decode('utf-8')
+    expected, _ = apply_config_changes(yaml.safe_load(text), changes)
+    tree = yaml.compose(text, Loader=yaml.SafeLoader)
+    edits = []
+    for change in changes:
+        node = tree
+        for part in change.path.split('.'):
+            if not isinstance(node, yaml.MappingNode):
+                raise ValueError('configuration path is not a YAML mapping')
+            matches = [value for key,value in node.value if key.value == part]
+            if len(matches) != 1:
+                raise ValueError('configuration path must identify one YAML value')
+            node = matches[0]
+        if not isinstance(node, yaml.ScalarNode):
+            raise ValueError('only scalar YAML settings can be replaced')
+        rendered = yaml.safe_dump(change.value, default_flow_style=True).splitlines()[0]
+        edits.append((node.start_mark.index, node.end_mark.index, rendered))
+    for start,end,value in sorted(edits, reverse=True):
+        text = text[:start]+value+text[end:]
+    if yaml.safe_load(text) != expected:
+        raise ValueError('YAML replacement would change unintended settings')
+    if path.read_bytes() != original:
+        raise ConfigurationConflict('selected YAML changed during planning')
+    backup.write_bytes(original)
+    temporary = None
+    try:
+        with tempfile.NamedTemporaryFile(prefix='.'+path.name+'.', suffix='.tmp', dir=path.parent, delete=False) as stream:
+            temporary = Path(stream.name)
+            stream.write(text.encode('utf-8'))
+        os.chmod(temporary, path.stat().st_mode)
+        if path.read_bytes() != original:
+            raise ConfigurationConflict('selected YAML changed before replacement')
+        temporary.replace(path)
+        temporary = None
+    finally:
+        if temporary is not None:
+            temporary.unlink(missing_ok=True)

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+import json
 from pathlib import Path
 import sys
 
@@ -23,10 +24,16 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument('--code', action='store_true', help='허용된 PINN 소스 문맥과 코드 후보 생성 사용')
     parser.add_argument('--train', action='store_true', help='설정 또는 검증된 후보로 로컬 학습')
     parser.add_argument('--run-candidate', action='store_true', help='후보 Python 코드를 로컬 권한으로 테스트 실행')
+    parser.add_argument('--preview', action='store_true', help='미리보기만 생성하고 지정 YAML은 변경하지 않음')
     args = parser.parse_args(argv)
-    result = run_request(AssistantOptions(config_path=args.config, request=args.request or '', model=args.model, train=args.train, code=args.code, run_candidate=args.run_candidate, resume_dir=args.resume, backend=args.backend),project_root=root)
+    if args.preview and (args.train or args.run_candidate):
+        parser.error('--preview는 --train 또는 --run-candidate와 함께 사용할 수 없습니다.')
+    result = run_request(AssistantOptions(config_path=args.config, request=args.request or '', model=args.model, train=args.train, code=args.code, run_candidate=args.run_candidate, resume_dir=args.resume, backend=args.backend, preview=args.preview),project_root=root)
     print(f'state={result.state}\nrun_dir={result.run_dir}')
     status = result.run_dir/'status.json'
+    details = json.loads(status.read_text(encoding='utf-8'))
+    if details.get('source_config_updated'):
+        print(f"config_updated={details['source_config_path']}")
     if result.exit_code:
         print(f'요청 설명 또는 오류: {status}')
     return result.exit_code

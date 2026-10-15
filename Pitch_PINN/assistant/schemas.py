@@ -61,6 +61,7 @@ class AssistantOptions:
     run_candidate: bool = False
     resume_dir: Path | None = None
     backend: Literal['codex', 'api'] = 'codex'
+    preview: bool = False
 
 
 @dataclass(frozen=True)

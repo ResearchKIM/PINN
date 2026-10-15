@@ -39,7 +39,7 @@ vehicle:
 auxiliary: {front_junction_ratio: 0.614, rear_junction_ratio: 0.797, damper_polarity: 1.0}
 skyhook: {enabled: false, gain_nms_per_rad: 0.0}
 training:
-  epochs: 5000
+  epochs: 30
   learning_rate: 0.001
   collocation_points: 1024
   log_every: 100

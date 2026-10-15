@@ -14,7 +14,7 @@ import yaml
 
 from .artifacts import safe_text, write_json
 from .candidates import build_candidate, copy_validated_candidate, run_candidate_tests, run_candidate_training, validate_candidate
-from .configuration import apply_config_changes
+from .configuration import ConfigurationConflict, apply_config_changes, persist_config_changes
 from .llm import PlannerError, collect_source_context, request_plan
 from .paths import reject_links
 from .schemas import AssistantOptions, AssistantPlan, RunResult, validate_plan
@@ -53,7 +53,7 @@ def run_request(options: AssistantOptions, *, project_root: Path, planner=reques
     run_dir = run_root/(datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%SZ')+'_'+uuid.uuid4().hex[:12])
     run_dir.mkdir()
     started = time.monotonic()
-    status = {'stage':'initialization', 'state':'running', 'backend':options.backend, 'requested_model':options.model or os.environ.get('PINN_LLM_MODEL') or DEFAULT_MODEL}
+    status = {'stage':'initialization', 'state':'running', 'backend':options.backend, 'source_config_updated':False, 'requested_model':options.model or os.environ.get('PINN_LLM_MODEL') or DEFAULT_MODEL}
 
     def finish(state: str, exit_code: int, error_code: str | None = None):
         status.update(state=state, error_code=error_code, elapsed_s=round(time.monotonic()-started, 3))
@@ -63,6 +63,8 @@ def run_request(options: AssistantOptions, *, project_root: Path, planner=reques
     write_json(run_dir/'status.json', status)
     (run_dir/'request.txt').write_text(safe_text(options.request), encoding='utf-8')
     try:
+        if options.preview and (options.train or options.run_candidate):
+            raise ValueError('preview cannot execute training or candidates')
         candidate = None
         if options.resume_dir is not None:
             status['stage'] = 'resume_validation'
@@ -86,7 +88,10 @@ def run_request(options: AssistantOptions, *, project_root: Path, planner=reques
             status['stage'] = 'planning'
             if not options.request.strip():
                 raise ValueError('request cannot be empty')
-            config = yaml.safe_load(options.config_path.read_text(encoding='utf-8-sig'))
+            source_path = options.config_path.absolute()
+            reject_links(source_path, Path(source_path.anchor))
+            source_before = source_path.read_bytes()
+            config = yaml.safe_load(source_before.decode('utf-8-sig'))
             config, _ = apply_config_changes(config, [])
             _resolve_data_path(config, root)
             sources = collect_source_context(root) if options.code else {}
@@ -105,8 +110,13 @@ def run_request(options: AssistantOptions, *, project_root: Path, planner=reques
         if plan.kind == 'config_change':
             if options.run_candidate:
                 raise ValueError('run-candidate requires a code plan')
+            if not options.preview:
+                status['stage'] = 'source_configuration_update'
+                persist_config_changes(source_path, source_before, plan.config_changes, run_dir/'source_config_before.yaml')
+                status.update(source_config_updated=True, source_config_path=str(source_path))
+                write_json(run_dir/'status.json', status)
             if not options.train:
-                return finish('planned', 0)
+                return finish('planned' if options.preview else 'config_applied', 0)
             status['stage'] = 'training'
             log = run_dir/'training.log'
             try:
@@ -136,6 +146,8 @@ def run_request(options: AssistantOptions, *, project_root: Path, planner=reques
         return finish('trained', 0)
     except PlannerError as error:
         return finish('failed',1,error.code)
+    except ConfigurationConflict:
+        return finish('failed',1,'source_configuration_conflict')
     except subprocess.TimeoutExpired:
         return finish('failed',1,'process_timeout')
     except (ValueError, OSError, KeyError, TypeError):

@@ -44,3 +44,7 @@ main 및 feature/natural-laguage-pinn 두 브랜치 업로드와 원격 해시 �
 실제 Codex 로그인 호출로 자연어→resolved_config.yaml 생성 성공: epochs20/stride10/physics_pitch6. 실행 ID20261015T110348Z_ab196a2baea8, 원본 YAML 보존. CLI JSON은 실제 모델 ID를 제공하지 않아 unreported_by_codex_cli로 기록했습니다.
 최종 테스트123passed/1skip, 독립 리뷰 Important/Critical 없음. 이전 '실제 클라우드 미검증'은 초기 API 버전에 대한 기록이며, 로그인 방식의 실제 설정 생성은 검증됐습니다.
 최신 인계: checkpoints/20261015-200746-codex-login-backend.md.
+
+2026-10-15 사용자 요청으로 자연어 설정 변경의 기본 동작을 지정한 원본 YAML에 백업 후 반영하도록 변경했습니다. 따라서 기존 train_inverse_pinn.py --config 명령이 변경 값을 읽습니다. --preview는 원본 보존 미리보기이며 코드 후보의 원본 자동 반영은 하지 않습니다.
+실제 로그인 요청으로 기본 tesla_ev6.yaml의 epochs5000→30 갱신, 원본 백업, 기존 load_config의 epochs30 읽기를 확인했습니다. 실행 ID20261015T114854Z_693a48b66887. 학습은 시작하지 않았습니다.
+전체 테스트132passed/1skip, 마지막 runner22passed. 독립 리뷰 Important/Critical 없음. 최신 인계: checkpoints/20261015-205139-codex-apply-source-yaml.md.
