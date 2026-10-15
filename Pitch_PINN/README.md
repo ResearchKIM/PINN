@@ -29,3 +29,7 @@ python -m pytest Pitch_PINN\tests -v
 ```
 
 상세 신호 역할, 물리식 및 제한사항은 [docs/full_car_model.md](docs/full_car_model.md)를 참고하세요.
+
+## 자연어로 학습 제어
+
+클라우드 LLM을 연결한 설정 변경·코드 후보 생성·로컬 학습 CLI의 설치 및 사용법은 [자연어 PINN 학습 도우미](docs/natural_language_assistant.md)를 참고하세요. 별도 API 키와 `requirements-assistant.txt`의 의존성이 필요합니다.

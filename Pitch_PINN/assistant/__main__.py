@@ -2,12 +2,16 @@ from __future__ import annotations
 
 import argparse
 from pathlib import Path
+import sys
 
 from .runner import run_request
 from .schemas import AssistantOptions
 
 
 def main(argv: list[str] | None = None) -> int:
+    for stream in (sys.stdout, sys.stderr):
+        if hasattr(stream, 'reconfigure'):
+            stream.reconfigure(encoding='utf-8', errors='replace')
     root = Path(__file__).resolve().parents[2]
     parser = argparse.ArgumentParser(description='자연어로 PINN 학습 설정과 코드 후보를 생성합니다.')
     source = parser.add_mutually_exclusive_group(required=True)

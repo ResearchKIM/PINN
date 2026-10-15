@@ -122,3 +122,13 @@ def test_cli_help_and_request_requirement(capsys):
     assert e.value.code==0 and '--resume' in capsys.readouterr().out
     with pytest.raises(SystemExit):
         main([])
+
+
+def test_cli_help_on_non_unicode_console():
+    import os
+    import subprocess
+    import sys
+    env = dict(os.environ, PYTHONIOENCODING='ascii')
+    result = subprocess.run([sys.executable,'-m','Pitch_PINN.assistant','--help'],env=env,capture_output=True)
+    assert result.returncode == 0, result.stderr.decode('ascii',errors='replace')
+    assert '자연어' in result.stdout.decode('utf-8')
