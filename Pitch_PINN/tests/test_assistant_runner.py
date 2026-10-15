@@ -101,11 +101,16 @@ def test_tests_failed_or_timed_out_prevents_training(project,monkeypatch,failure
 def test_resume_without_api_and_with_preserved_source(project,monkeypatch):
     p=project/'Pitch_PINN/models/a.py'; p.parent.mkdir(); p.write_text('VALUE=1')
     ready=runner.run_request(options(project,code=True),project_root=project,planner=planner('code_change',files=[{'path':'Pitch_PINN/models/a.py','content':'VALUE=2'}]))
+    saved_path=ready.run_dir/'resolved_config.yaml'
+    saved=yaml.safe_load(saved_path.read_text(encoding='utf-8'))
+    saved['data']['mat_path']='local_data/scenario.mat'
+    saved_path.write_text(yaml.safe_dump(saved),encoding='utf-8')
     monkeypatch.setattr(runner,'run_candidate_tests',lambda *a,**k:NS(returncode=0))
     never=Mock(side_effect=AssertionError('no API call on resume'))
     resumed=runner.run_request(AssistantOptions(config_path=options(project).config_path,resume_dir=ready.run_dir,run_candidate=True),project_root=project,planner=never)
     assert resumed.state=='tests_passed'
     assert resumed.run_dir != ready.run_dir
+    assert Path(yaml.safe_load((resumed.run_dir/'resolved_config.yaml').read_text(encoding='utf-8'))['data']['mat_path'])==(project/'local_data/scenario.mat').resolve()
     never.assert_not_called()
 
 
@@ -114,6 +119,23 @@ def test_missing_api_key_fails_without_training(project,monkeypatch):
     result=runner.run_request(options(project,train=True),project_root=project)
     status=json.loads((result.run_dir/'status.json').read_text())
     assert status['error_code']=='missing_key'
+
+
+def test_relative_data_path_is_preserved_when_candidate_cwd_changes(project,monkeypatch):
+    config_path=options(project).config_path
+    base=yaml.safe_load(config_path.read_text(encoding='utf-8'))
+    base['data']['mat_path']='local_data/scenario.mat'
+    config_path.write_text(yaml.safe_dump(base),encoding='utf-8')
+    p=project/'Pitch_PINN/models/a.py'; p.parent.mkdir(); p.write_text('VALUE=1')
+    monkeypatch.setattr(runner,'run_candidate_tests',lambda *a,**k:NS(returncode=0))
+    seen=[]
+    def train(candidate,config_path,out):
+        seen.append(yaml.safe_load(config_path.read_text(encoding='utf-8'))['data']['mat_path'])
+        return NS(returncode=0)
+    monkeypatch.setattr(runner,'run_candidate_training',train)
+    result=runner.run_request(options(project,code=True,run_candidate=True,train=True),project_root=project,planner=planner('code_change',files=[{'path':'Pitch_PINN/models/a.py','content':'VALUE=2'}]))
+    assert result.state=='trained'
+    assert Path(seen[0])==(project/'local_data/scenario.mat').resolve()
 
 
 def test_cli_help_and_request_requirement(capsys):

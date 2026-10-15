@@ -13,7 +13,7 @@ import uuid
 import yaml
 
 from .artifacts import safe_text, write_json
-from .candidates import build_candidate, run_candidate_tests, run_candidate_training, validate_candidate
+from .candidates import build_candidate, copy_validated_candidate, run_candidate_tests, run_candidate_training, validate_candidate
 from .configuration import apply_config_changes
 from .llm import PlannerError, collect_source_context, request_plan
 from .paths import reject_links
@@ -25,6 +25,12 @@ DEFAULT_MODEL = 'gpt-6.1-sol'
 def train_configuration(config: dict, output_dir: Path):
     from Pitch_PINN.train_inverse_pinn import run_training_from_config
     return run_training_from_config(config, output_dir=output_dir)
+
+
+def _resolve_data_path(config: dict, root: Path) -> None:
+    path = Path(config['data']['mat_path'])
+    if not path.is_absolute():
+        config['data']['mat_path'] = str((root/path).resolve())
 
 
 def _resume_source(directory: Path, run_root: Path) -> Path:
@@ -67,7 +73,8 @@ def run_request(options: AssistantOptions, *, project_root: Path, planner=reques
                 raise ValueError('resume supports code candidates only')
             config = yaml.safe_load((previous/'resolved_config.yaml').read_text(encoding='utf-8'))
             apply_config_changes(config, [])
-            shutil.copytree(previous/'candidate', run_dir/'candidate', ignore=shutil.ignore_patterns('__pycache__', '.pytest_cache'))
+            _resolve_data_path(config, root)
+            copy_validated_candidate(previous/'candidate', run_dir/'candidate')
             for name in ('source_hashes.json', 'changes.diff', 'config_diff.json'):
                 shutil.copy2(previous/name, run_dir/name)
             candidate = run_dir/'candidate'
@@ -81,6 +88,7 @@ def run_request(options: AssistantOptions, *, project_root: Path, planner=reques
                 raise ValueError('request cannot be empty')
             config = yaml.safe_load(options.config_path.read_text(encoding='utf-8-sig'))
             config, _ = apply_config_changes(config, [])
+            _resolve_data_path(config, root)
             sources = collect_source_context(root) if options.code else {}
             result = planner(options.request, config, model=status['requested_model'], sources=sources)
             plan = result.plan

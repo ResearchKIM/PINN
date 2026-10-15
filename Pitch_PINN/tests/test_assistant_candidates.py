@@ -68,6 +68,16 @@ def test_candidate_test_tampering_is_rejected(source, tmp_path):
         validate_candidate(candidate)
 
 
+@pytest.mark.parametrize('raw', ['conftest.py', 'pytest.ini', 'sitecustomize.py', 'Pitch_PINN/tests/new_test.py'])
+def test_candidate_rejects_untracked_execution_files(source, tmp_path, raw):
+    candidate = build_candidate(source,tmp_path/'run',[FileChange(path='Pitch_PINN/models/a.py',content='VALUE=2')])
+    target = candidate/raw
+    target.parent.mkdir(parents=True, exist_ok=True)
+    target.write_text('# unexpected execution configuration', encoding='utf-8')
+    with pytest.raises(ValueError):
+        validate_candidate(candidate)
+
+
 def test_link_escape_is_rejected(source, tmp_path):
     link = source/'Pitch_PINN/models/link.py'
     try:

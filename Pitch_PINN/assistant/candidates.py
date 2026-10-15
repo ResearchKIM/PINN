@@ -67,11 +67,26 @@ def build_candidate(project_root: Path, run_dir: Path, changes: list[FileChange]
     return candidate
 
 
-def validate_candidate(candidate_root: Path) -> None:
+def validate_candidate(candidate_root: Path) -> dict[str, Path]:
     root = candidate_root.resolve()
     reject_links(candidate_root, candidate_root.parent)
     hashes = json.loads((root.parent/'source_hashes.json').read_text(encoding='utf-8'))
-    files = {p.relative_to(root).as_posix():p for p in _files(root)}
+    expected_dirs = {'.'}
+    for raw in hashes:
+        expected_dirs.update(p.as_posix() for p in Path(raw).parents)
+    files = {}
+    for directory, dirs, names in os.walk(root, followlinks=False):
+        parent = Path(directory)
+        for name in dirs:
+            path = parent/name
+            reject_links(path, root)
+            if name not in ('__pycache__', '.pytest_cache') and path.relative_to(root).as_posix() not in expected_dirs:
+                raise ValueError('unexpected candidate directory')
+        dirs[:] = [d for d in dirs if d not in ('__pycache__', '.pytest_cache')]
+        for name in names:
+            path = parent/name
+            reject_links(path, root)
+            files[path.relative_to(root).as_posix()] = path
     if set(files) != set(hashes):
         raise ValueError('candidate file set changed')
     for raw, path in files.items():
@@ -87,10 +102,18 @@ def validate_candidate(candidate_root: Path) -> None:
                 ast.parse(path.read_text(encoding='utf-8-sig'), filename=raw)
             except (SyntaxError, UnicodeError):
                 raise ValueError('candidate contains invalid Python syntax') from None
+    return files
+
+
+def copy_validated_candidate(source: Path, destination: Path) -> None:
+    for raw, path in validate_candidate(source).items():
+        target = destination/raw
+        target.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(path, target)
 
 
 def child_environment() -> dict[str, str]:
-    env = {k:v for k,v in os.environ.items() if k.upper() not in ('OPENAI_API_KEY', 'PYTHONPATH', 'PYTHONHOME')}
+    env = {k:v for k,v in os.environ.items() if k.upper() not in ('OPENAI_API_KEY', 'PYTHONPATH', 'PYTHONHOME', 'PYTEST_ADDOPTS', 'PYTEST_PLUGINS')}
     env['PYTHONUTF8'] = '1'
     env['PYTEST_DISABLE_PLUGIN_AUTOLOAD'] = '1'
     env.pop('PYTEST_ADDOPTS', None)
@@ -112,7 +135,14 @@ def _execute(candidate: Path, args: list[str], log: Path, timeout_s: int):
 
 
 def run_candidate_tests(candidate_root: Path, *, timeout_s: int = 180) -> subprocess.CompletedProcess[str]:
-    return _execute(candidate_root, ['-m','pytest','Pitch_PINN/tests','-q','--import-mode=importlib'], candidate_root.parent/'tests.log', timeout_s)
+    config = candidate_root.parent/'pytest-isolated.ini'
+    config.write_text('[pytest]\n', encoding='utf-8')
+    bootstrap = (
+        'from pathlib import Path; import sys; import Pitch_PINN; '
+        'assert Path(Pitch_PINN.__file__).resolve().is_relative_to(Path.cwd().resolve()), "wrong package origin"; '
+        'import pytest; raise SystemExit(pytest.main(sys.argv[1:]))'
+    )
+    return _execute(candidate_root, ['-c',bootstrap,'-c',str(config.resolve()),'--rootdir',str(candidate_root.resolve()),'--confcutdir',str(candidate_root.resolve()),'Pitch_PINN/tests','-q','--import-mode=importlib'], candidate_root.parent/'tests.log', timeout_s)
 
 
 def run_candidate_training(candidate_root: Path, config_path: Path, output_dir: Path, *, timeout_s: int = 3600) -> subprocess.CompletedProcess[str]:

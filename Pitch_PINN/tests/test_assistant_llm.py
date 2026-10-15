@@ -56,6 +56,18 @@ def test_auth_timeout_model_error_redacts_secrets():
         assert len(calls) == 1
 
 
+@pytest.mark.parametrize('name,status,expected', [('AuthenticationError',401,'authentication'),('PermissionDeniedError',403,'model_unavailable'),('NotFoundError',404,'model_unavailable')])
+def test_sdk_auth_and_model_errors_are_classified_without_leaking(name,status,expected):
+    import openai
+    error=getattr(openai,name)('secret-canary',response=NS(request=None,status_code=status,headers={}),body=None)
+    client,calls=fake(error=error)
+    with pytest.raises(PlannerError) as e:
+        request_plan('요청',{},model='chosen',sources={},client=client)
+    assert e.value.code==expected
+    assert 'secret-canary' not in str(e.value)
+    assert len(calls)==1
+
+
 def test_context_excludes_data_tests_and_secrets(tmp_path):
     root = tmp_path / 'Pitch_PINN'
     for name in ['models/a.py','tests/a.py','outputs/a.py','assistant/secret.py','physics/sample.mat']:
