@@ -36,6 +36,10 @@ Codex의 ChatGPT 로그인을 사용하는 설정 변경·코드 후보 생성·
 
 자연어 설정 변경은 기본 YAML에 백업 후 바로 반영되므로 기존 학습 명령이 새 값을 읽습니다. 파일을 바꾸지 않는 미리보기는 `--preview`를 사용하세요.
 
+학습 데이터도 `PINN_file/src_cm4sl/Data/` 아래 같은 차량의 MAT 파일 중에서 자연어로 선택할 수 있습니다. 예: `--request "학습 데이터를 EV6 0.2g 가속 ACC 데이터로 변경해줘"`. 필수 신호와 전처리를 검증한 후 경로·시나리오 이름을 갱신합니다. 0.2g EV6에는 가속과 감속 파일이 있으므로 조건을 명시하세요.
+
+현재 0.2g EV6 MAT 파일에는 필수 `AccZ_*_WC` 신호가 없어 `dataset_invalid`로 차단됩니다. 데이터 경로 변경 기능과 해당 파일의 학습 입력 호환성은 구별해야 하며 상세 내용은 위 사용 안내에 기록했습니다.
+
 ```powershell
 .\.venv\Scripts\python.exe -m Pitch_PINN.assistant --request "학습 epoch를 30으로 변경해줘"
 python Pitch_PINN\train_inverse_pinn.py --config Pitch_PINN\config\tesla_ev6.yaml

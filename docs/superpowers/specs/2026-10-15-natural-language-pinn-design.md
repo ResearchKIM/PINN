@@ -58,7 +58,9 @@ python -m Pitch_PINN.assistant --request "앞뒤 강성은 고정하고 감쇠�
 - model.hidden_width, hidden_layers
 - model.parameters의 기존 네 계수 initial/min/max
 
-값의 자료형, 유한성, 양수/음이 아닌 정수 조건, min < max와 initial 범위를 검사한다. bool을 정수로 허용하지 않는다. 모르는 설정 경로는 오류로 처리한다. 데이터 파일, CarMaker 실행 명령, 출력 경로는 LLM 설정 변경 대상으로 두지 않는다.
+값의 자료형, 유한성, 양수/음이 아닌 정수 조건, min < max와 initial 범위를 검사한다. bool을 정수로 허용하지 않는다. 모르는 설정 경로는 오류로 처리한다. CarMaker 실행 명령과 출력 경로는 LLM 설정 변경 대상으로 두지 않는다.
+
+2026-10-16 사용자 요청으로 data.mat_path를 확장했다. PINN_file/src_cm4sl/Data/의 동일 차량 MAT 파일 목록만 LLM에 제공하고, 모호한 조건은 질문하도록 지시한다. 로컬 실행기는 목록 소속·경로·필수 신호·전처리를 검사한 후 경로와 data.scenario_name을 반영한다. 데이터 값은 클라우드에 전달하지 않는다. 타 차량 선택과 외부/링크 경로는 허용하지 않는다. --preview/백업/기존 설정 누적 흐름은 유지한다.
 
 예: "pitch 물리 손실 가중치를 현재의 3배로"는 현재 physics_pitch=2.0을 문맥으로 전달해 6.0으로 제안하고 변경 차이를 기록한다. "강성을 고정"은 현재 설정만으로 구현되지 않으므로 코드 변경으로 분류한다.
 

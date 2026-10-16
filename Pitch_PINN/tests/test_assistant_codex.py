@@ -52,6 +52,14 @@ def test_api_credentials_are_not_passed_to_codex(monkeypatch):
     assert all('OPENAI_API_KEY' not in k['env'] and 'CODEX_API_KEY' not in k['env'] for _,k in calls)
 
 
+def test_dataset_catalog_is_in_codex_prompt(monkeypatch):
+    calls = process(monkeypatch)
+    datasets = [{'path':'PINN_file/src_cm4sl/Data/3.ACC/0.2g_EV6.mat','scenario_name':'3.ACC/0.2g_EV6','vehicle':'EV6'}]
+    request_codex_plan('0.2g EV6 가속 데이터', {}, model='chosen', sources={}, datasets=datasets)
+    assert json.dumps(datasets, ensure_ascii=False) in calls[1][1]['input']
+    assert 'return clarification' in calls[1][1]['input']
+
+
 @pytest.mark.parametrize('auth,exit_code,error', [('Not logged in',1,'codex_login_required'),('Logged in using API key',0,'codex_chatgpt_login_required')])
 def test_missing_or_api_login_stops_before_cloud(monkeypatch,auth,exit_code,error):
     calls=process(monkeypatch,auth=auth,auth_exit=exit_code)

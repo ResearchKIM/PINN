@@ -48,3 +48,8 @@ main 및 feature/natural-laguage-pinn 두 브랜치 업로드와 원격 해시 �
 2026-10-15 사용자 요청으로 자연어 설정 변경의 기본 동작을 지정한 원본 YAML에 백업 후 반영하도록 변경했습니다. 따라서 기존 train_inverse_pinn.py --config 명령이 변경 값을 읽습니다. --preview는 원본 보존 미리보기이며 코드 후보의 원본 자동 반영은 하지 않습니다.
 실제 로그인 요청으로 기본 tesla_ev6.yaml의 epochs5000→30 갱신, 원본 백업, 기존 load_config의 epochs30 읽기를 확인했습니다. 실행 ID20261015T114854Z_693a48b66887. 학습은 시작하지 않았습니다.
 전체 테스트132passed/1skip, 마지막 runner22passed. 독립 리뷰 Important/Critical 없음. 최신 인계: checkpoints/20261015-205139-codex-apply-source-yaml.md.
+
+2026-10-16 사용자 요청으로 자연어 데이터 선택을 허용했습니다. 동일 차량의 PINN_file/src_cm4sl/Data MAT 파일 목록을 Codex/API에 전달하고, 목록 경로·MAT 로더·전처리를 검증한 후 data.mat_path와 scenario_name을 갱신합니다. 모호한 ACC/DEC는 질문하도록 지시합니다. 원본 백업/preview/숫자 설정 검증 유지.
+최종 테스트147passed/1skip, 독립 리뷰 Important/Critical 없음. 실제 Codex로 모호한0.2g→질문, 명확한0.2gACC→dataset_invalid, 호환0.1gACC→임시 YAML 반영·기존 로더 읽기·백업을 확인했습니다. 실학습 없음.
+현재 실제0.2g EV6 ACC/DEC MAT에는 AccZ_FL_WC/FR/RL/RR가 없어 경로 반영이 차단됩니다. 데이터 신호 준비 또는 별도 미분 전처리 설계가 필요하며 후자는 이번 범위 밖입니다. 사용자가 변경한 실제 YAML(epoch637/가중치50,10,100 등)은 그대로 보존하고 커밋에서 제외합니다.
+최신 인계: checkpoints/20261016-120519-codex-dataset-selection.md.

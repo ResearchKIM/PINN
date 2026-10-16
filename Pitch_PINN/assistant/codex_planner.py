@@ -35,7 +35,7 @@ def codex_environment() -> dict[str, str]:
     return {k:v for k,v in os.environ.items() if k.upper() not in excluded}
 
 
-def request_codex_plan(request: str, base: dict, *, model: str, sources: dict[str, str]) -> PlanResult:
+def request_codex_plan(request: str, base: dict, *, model: str, sources: dict[str, str], datasets: list[dict[str, str]] | None = None) -> PlanResult:
     executable = str(resolve_codex())
     env = codex_environment()
     try:
@@ -45,7 +45,7 @@ def request_codex_plan(request: str, base: dict, *, model: str, sources: dict[st
         if 'chatgpt' not in (authentication.stdout+'\n'+authentication.stderr).lower():
             raise PlannerError('codex_chatgpt_login_required')
         prompt = system_prompt()+'\nDo not call tools, read files, or run commands. Use only the supplied input and return the final JSON plan.\n'
-        prompt += json.dumps({'request':request,'configuration':base,'sources':sources},ensure_ascii=False,allow_nan=False)
+        prompt += json.dumps({'request':request,'configuration':base,'sources':sources,'available_datasets':datasets or []},ensure_ascii=False,allow_nan=False)
         with tempfile.TemporaryDirectory(prefix='pinn-codex-') as directory:
             work = Path(directory)
             schema, output = work/'plan-schema.json', work/'plan-output.json'

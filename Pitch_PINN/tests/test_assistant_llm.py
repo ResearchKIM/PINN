@@ -32,6 +32,15 @@ def test_responses_parse_receives_request_config_and_schema():
     assert '2.0' in json.dumps(calls[0]['input'])
 
 
+def test_dataset_catalog_is_in_api_input():
+    client, calls = fake(NS(status='completed', output=[], output_parsed=plan(), model='returned', id='resp_1'))
+    datasets = [{'path':'PINN_file/src_cm4sl/Data/3.ACC/0.2g_EV6.mat','scenario_name':'3.ACC/0.2g_EV6','vehicle':'EV6'}]
+    request_plan('0.2g EV6 가속 데이터', {}, model='chosen', sources={}, datasets=datasets, client=client)
+    supplied = json.loads(calls[0]['input'][1]['content'])
+    assert supplied['available_datasets'] == datasets
+    assert 'data.mat_path' in calls[0]['input'][0]['content']
+
+
 @pytest.mark.parametrize('status,output,parsed,code', [('incomplete',[],None,'incomplete'), ('completed',[NS(content=[NS(type='refusal')])],None,'refused'), ('completed',[],None,'invalid_plan')])
 def test_missing_key_refusal_incomplete_invalid_plan(status, output, parsed, code):
     client, _ = fake(NS(status=status, output=output, output_parsed=parsed))

@@ -4,7 +4,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Literal
 
-from pydantic import BaseModel, ConfigDict, StrictFloat, StrictInt
+from pydantic import BaseModel, ConfigDict, StrictFloat, StrictInt, StrictStr
 
 
 class StrictModel(BaseModel):
@@ -13,7 +13,7 @@ class StrictModel(BaseModel):
 
 class ConfigChange(StrictModel):
     path: str
-    value: StrictInt | StrictFloat
+    value: StrictInt | StrictFloat | StrictStr
 
 
 class FileChange(StrictModel):

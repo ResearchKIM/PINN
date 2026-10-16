@@ -15,6 +15,7 @@ import yaml
 from .artifacts import safe_text, write_json
 from .candidates import build_candidate, copy_validated_candidate, run_candidate_tests, run_candidate_training, validate_candidate
 from .configuration import ConfigurationConflict, apply_config_changes, persist_config_changes
+from .datasets import DatasetError, collect_datasets, validate_dataset_changes
 from .llm import PlannerError, collect_source_context, request_plan
 from .paths import reject_links
 from .schemas import AssistantOptions, AssistantPlan, RunResult, validate_plan
@@ -95,10 +96,18 @@ def run_request(options: AssistantOptions, *, project_root: Path, planner=reques
             config, _ = apply_config_changes(config, [])
             _resolve_data_path(config, root)
             sources = collect_source_context(root) if options.code else {}
-            result = planner(options.request, config, model=status['requested_model'], sources=sources, backend=options.backend)
+            datasets = collect_datasets(root, config['data']['vehicle'])
+            write_json(run_dir/'datasets.json', datasets)
+            result = planner(options.request, config, model=status['requested_model'], sources=sources, backend=options.backend, datasets=datasets)
             plan = result.plan
             validate_plan(plan)
             status.update(returned_model=result.returned_model, response_id=result.response_id)
+            write_json(run_dir/'plan.json', plan.model_dump())
+            if plan.kind in ('config_change', 'code_change'):
+                status['stage'] = 'dataset_validation'
+                plan.config_changes, dataset_status = validate_dataset_changes(root, config, plan.config_changes, datasets)
+                if dataset_status is not None:
+                    status['dataset_validation'] = dataset_status
         write_json(run_dir/'plan.json', plan.model_dump())
         if plan.kind in ('clarification','unsupported'):
             return finish('needs_clarification' if plan.kind=='clarification' else 'unsupported', 2)
@@ -106,6 +115,7 @@ def run_request(options: AssistantOptions, *, project_root: Path, planner=reques
         if options.resume_dir is None:
             config, diff = apply_config_changes(config, plan.config_changes)
             write_json(run_dir/'config_diff.json', diff)
+            _resolve_data_path(config, root)
         (run_dir/'resolved_config.yaml').write_text(safe_text(yaml.safe_dump(config, allow_unicode=True, sort_keys=False)), encoding='utf-8')
         if plan.kind == 'config_change':
             if options.run_candidate:
@@ -145,6 +155,8 @@ def run_request(options: AssistantOptions, *, project_root: Path, planner=reques
             return finish('failed', 1, 'candidate_training_failed')
         return finish('trained', 0)
     except PlannerError as error:
+        return finish('failed',1,error.code)
+    except DatasetError as error:
         return finish('failed',1,error.code)
     except ConfigurationConflict:
         return finish('failed',1,'source_configuration_conflict')

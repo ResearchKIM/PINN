@@ -55,7 +55,7 @@ python Pitch_PINN\train_inverse_pinn.py --config Pitch_PINN\config\tesla_ev6.yam
 
 첫 명령은 검증된 변경값을 기본 파일 `Pitch_PINN/config/tesla_ev6.yaml`에 바로 반영합니다. `state=config_applied`와 `config_updated=...`가 출력되면 두 번째 기존 학습 명령이 변경된 파일을 읽습니다. 다른 Python 환경을 사용한다면 두 번째 명령의 python도 `.\.venv\Scripts\python.exe`로 바꿀 수 있습니다.
 
-다음 자연어 요청도 현재 YAML을 읽으므로 이전 변경값을 이어받습니다. --config를 지정하면 그 YAML이 변경 대상입니다. 변경 전 파일은 실행 폴더의 source_config_before.yaml에 바이트 그대로 백업합니다. 요청한 숫자 값만 변경하고 기존 주석·줄바꿈·상대 데이터 경로를 유지합니다. 계획 생성 중 사용자나 다른 실행이 파일을 바꾸면 덮어쓰기를 중단합니다.
+다음 자연어 요청도 현재 YAML을 읽으므로 이전 변경값을 이어받습니다. --config를 지정하면 그 YAML이 변경 대상입니다. 변경 전 파일은 실행 폴더의 source_config_before.yaml에 바이트 그대로 백업합니다. 요청한 설정값과 데이터 선택에 필요한 시나리오 이름만 변경하고 기존 주석·줄바꿈·변경하지 않은 경로를 유지합니다. 계획 생성 중 사용자나 다른 실행이 파일을 바꾸면 덮어쓰기를 중단합니다.
 
 파일을 바꾸지 않고 확인만 하려면 --preview를 사용합니다.
 
@@ -73,9 +73,26 @@ python Pitch_PINN\train_inverse_pinn.py --config Pitch_PINN\config\tesla_ev6.yam
 
 코드 후보 계획은 기본 YAML에 자동 적용하지 않습니다. 새 Python 코드의 원본 반영도 기존처럼 자동으로 하지 않습니다. 기존 API 방식을 선택하려면 명령 끝에 --backend api를 추가합니다.
 
-조정할 수 있는 항목은 epoch, learning rate, collocation 수, 로그 주기, seed, 관측 stride와 전처리 개수, 신경망 폭/층수, 기존 손실 가중치, 기존 K/C 초기값·범위입니다. 데이터 파일·출력 경로·CarMaker 명령은 자연어로 변경하지 않습니다. 현재 학습 진입점에 연결되지 않은 use_lbfgs 옵션은 지원하지 않습니다.
+조정할 수 있는 항목은 epoch, learning rate, collocation 수, 로그 주기, seed, 관측 stride와 전처리 개수, 신경망 폭/층수, 기존 손실 가중치, 기존 K/C 초기값·범위 및 아래 목록의 학습 데이터 파일입니다. 출력 경로·CarMaker 명령은 자연어로 변경하지 않습니다. 현재 학습 진입점에 연결되지 않은 use_lbfgs 옵션은 지원하지 않습니다.
 
 사용자 지정 YAML의 data.mat_path가 상대 경로이면 실행별 resolved_config.yaml에서는 프로젝트 루트 기준 절대 경로로 해석합니다. 지정한 원본 YAML의 상대 경로 표기는 그대로 유지합니다. 후보 폴더에서 실행해도 같은 원본 데이터를 사용합니다.
+
+## 자연어로 학습 데이터 선택
+
+`PINN_file/src_cm4sl/Data/` 아래의 MAT 파일 중 현재 `data.vehicle`과 파일명의 차량 식별자가 같은 파일을 매 요청마다 검색합니다. 새 파일도 이 폴더의 해당 시나리오에 넣으면 다음 요청에서 검색됩니다. 외부 디렉터리, 링크 파일, 다른 차량의 데이터와 임의 경로는 이번 기능의 선택 대상이 아닙니다. 차량 변경은 데이터뿐 아니라 질량·관성·차량 치수도 바꿔야 하므로 자동 지원하지 않습니다.
+
+```powershell
+.\.venv\Scripts\python.exe -m Pitch_PINN.assistant --request "학습 데이터를 EV6 0.2g 가속 ACC 데이터로 변경해줘. 다른 학습 설정은 유지해줘"
+python Pitch_PINN\train_inverse_pinn.py --config Pitch_PINN\config\tesla_ev6.yaml
+```
+
+0.2g EV6 데이터는 `3.ACC`(가속)와 `4.DEC`(감속)에 각각 존재합니다. 조건이 모호하면 LLM에 어느 조건인지 질문하도록 지시하며, `needs_clarification`일 때는 plan.json의 questions를 확인하고 조건을 포함한 새 요청을 실행합니다. 현재는 대화형 답변 세션을 이어가지 않습니다. 파일명으로 조건을 구분하므로 실제 계측 조건·단위의 정확성까지 보증하지 않습니다.
+
+파일을 선택하면 Python이 목록 내 경로와 존재 여부를 확인하고 기존 MAT 로더·전처리로 필수 신호, 배열 크기, 유효 시각·샘플 수 등을 검사합니다. 통과하면 `data.mat_path`와 `data.scenario_name`을 함께 갱신합니다. `--preview`에서도 검증은 수행하지만 원본 YAML은 변경하지 않습니다. 실패하면 경로를 반영하거나 학습을 시작하지 않습니다. `dataset_not_allowed`는 목록 밖/타 차량/잘못된 경로 선택, `dataset_invalid`는 MAT 형식·신호·전처리 불일치입니다.
+
+2026-10-16 실제 파일 확인: 현재 0.2g EV6 가속·감속 MAT에는 `AccZ_FL_WC`, `AccZ_FR_WC`, `AccZ_RL_WC`, `AccZ_RR_WC`가 없습니다. 위 0.2g 요청은 이제 허용 범위로 해석하지만 이 신호 검증에서 `dataset_invalid`로 차단됩니다. 실제 사용하려면 해당 신호를 포함한 데이터를 준비해야 합니다. 휠 속도를 미분해 대신 사용하는 방식은 별도 전처리 설계·검증이 필요하며 이번 변경에는 포함하지 않았습니다. 현재 0.1g EV6 ACC 파일은 이 신호를 포함합니다.
+
+목록과 경로 이름·시나리오·차량 메타데이터만 LLM에 전달하며 MAT 신호 값은 전송하지 않습니다. 실행 폴더의 `datasets.json`에 선택 가능한 목록, `status.json`의 `dataset_validation`에 검증한 파일과 전처리 후 샘플 수를 남깁니다. 지원 범위 밖의 파일은 기존 YAML을 수동 편집할 수 있지만 자동 선택에는 포함되지 않습니다.
 
 "pitch 물리 잔차 가중치를 현재의 3배로"는 현재 가중치가 2라면 최종값 6을 제안합니다. 자연어 해석의 의미적 정확성은 모델 응답 검토가 필요하며 스키마 검증만으로 증명되지 않습니다.
 
@@ -105,6 +122,7 @@ python Pitch_PINN\train_inverse_pinn.py --config Pitch_PINN\config\tesla_ev6.yam
 | request.txt / plan.json | 요청과 구조화된 해석 |
 | config_diff.json / resolved_config.yaml | 변경 전후 값과 최종 설정 |
 | source_config_before.yaml | 실제 YAML 반영 직전의 원본 백업 |
+| datasets.json | 해당 요청에 제공한 데이터 파일 목록·시나리오·차량 |
 | status.json | 단계·상태·소요 시간·모델 ID·오류 코드 |
 | changes.diff / source_hashes.json / candidate/ | 코드 모드 후보와 원본 해시 |
 | tests.log / training.log | 실행한 검증·학습 로그 |

@@ -24,6 +24,7 @@ def test_config_copy_preserves_original(base):
 
 
 def test_relative_request_uses_absolute_plan_value(base):
+    base['training']['weights']['physics_pitch'] = 2.0
     result, diff = apply_config_changes(base, [ConfigChange(path='training.weights.physics_pitch', value=6.0)])
     assert diff == [{'path': 'training.weights.physics_pitch', 'before': 2.0, 'after': 6.0}]
     assert result['training']['weights']['physics_pitch'] == 6.0

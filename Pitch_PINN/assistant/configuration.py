@@ -21,6 +21,7 @@ INTEGER_MINIMUMS = {
 NUMERIC_PATHS = {'training.learning_rate'} | {'training.weights.'+w for w in WEIGHTS} | {
     f'model.parameters.{p}.{field}' for p in PARAMETERS for field in ('initial', 'min', 'max')
 }
+STRING_PATHS = {'data.mat_path', 'data.scenario_name'}
 
 
 def _location(config: dict, path: str):
@@ -43,8 +44,10 @@ def apply_config_changes(base: dict, changes: list[ConfigChange]) -> tuple[dict,
     config, diff, seen = deepcopy(base), [], set()
     for change in changes:
         path = change.path
-        if path in seen or path not in INTEGER_MINIMUMS and path not in NUMERIC_PATHS:
+        if path in seen or path not in INTEGER_MINIMUMS and path not in NUMERIC_PATHS and path not in STRING_PATHS:
             raise ValueError('duplicate or unsupported configuration path')
+        if path in STRING_PATHS and (not isinstance(change.value, str) or not change.value.strip() or any(c in change.value for c in '\r\n\x00')):
+            raise ValueError('data settings require non-empty single-line strings')
         seen.add(path)
         parent, key = _location(config, path)
         diff.append({'path': path, 'before': parent[key], 'after': change.value})
@@ -90,7 +93,7 @@ def persist_config_changes(path: Path, original: bytes, changes: list[ConfigChan
             node = matches[0]
         if not isinstance(node, yaml.ScalarNode):
             raise ValueError('only scalar YAML settings can be replaced')
-        rendered = yaml.safe_dump(change.value, default_flow_style=True).splitlines()[0]
+        rendered = yaml.safe_dump(change.value, default_flow_style=True, allow_unicode=True, width=1000000).splitlines()[0]
         edits.append((node.start_mark.index, node.end_mark.index, rendered))
     for start,end,value in sorted(edits, reverse=True):
         text = text[:start]+value+text[end:]
